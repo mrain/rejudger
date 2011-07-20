@@ -16,7 +16,8 @@ class CurlDownloader:
 
 		if params:
 			if post:
-				self.curl.setopt(pycurl.HTTPPOST, [(x, str(y).replace("'", '"')) for x,y in params.items()])
+				self.curl.setopt(pycurl.HTTPPOST, [(x, str(y)) for x,y in params.items()])
+				print [(x, str(y)) for x,y in params.items()]
 			else:
 				url = "?".join((url, urllib.urlencode(params)))
 

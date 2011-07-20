@@ -25,11 +25,11 @@ def write(msg, errlevel = 3):
 	global loglevel
 	global screenlevel
 	global logfile
-	msg = '[' + asctime() + '] ' + str(msg)
+	msg = '[' + asctime() + '] ' + str(msg) + "\n"
 	if (loglevel <= errlevel):
-		logfile = open(logfile, "a")
-		logfile.writelines([msg])
-		logfile.close()
+		f = open(logfile, "a")
+		f.write(msg)
+		f.close()
 	if (screenlevel <= errlevel):
-		sys.stderr.writelines([msg])
+		sys.stderr.write(msg)
 

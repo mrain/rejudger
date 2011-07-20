@@ -37,7 +37,7 @@ def compile(name, code):
 	f.write(code);
 	f.close();
 
-	compile_pattern = "g++ %s.cpp -o %s -O2 -Wall -DONLINE_JUDGE" % (name, name)
+	compile_pattern = "gcc %s.cpp -o %s -O2 -Wall -DONLINE_JUDGE" % (name, name)
 	
 	com_msg_file = "%s_com_msg" % name
 	com_err_file = "%s_com_err" % name

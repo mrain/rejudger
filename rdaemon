@@ -16,7 +16,7 @@
 
 from util import log, network, cache
 import langlib
-import os, random, time
+import os, random, time, base64
 
 working_dir = 1
 web_prefix = "http://localhost:8080/OnlineJudge/polling"
@@ -34,7 +34,7 @@ Verdict = [
 		"Validator Error"
 		]
 
-def generate_name():
+def __generate_name():
 	'''Generate an random name for a record.'''
 	s = time.strftime("%s-")
 	for i in range(7):
@@ -44,7 +44,7 @@ def generate_name():
 def load_config():
 	log.logfile = "/var/log/rejudger.log"
 	cache.cachedir = "/var/cache/rejudger"
-	cache.prefix = "http://59.78.43.88:8080/Load/oj/problems"
+	cache.prefix = "http://59.78.43.88/oj/problems"
 	global working_dir
 	working_dir = "/tmp/rejudger"
 	global web_prefix
@@ -77,16 +77,14 @@ def validate(infile, outfile, ansfile):
 def send(id, status, message, verdict):
 	'''send message to webserver.'''
 	global web_prefix
-	network.Download(
-			web_prefix, 
-			params = {
-					"id" : str(id),
-					"status" : str(status),
-					"message" : str(message),
-					"verdict" : str(verdict)
-				},
-			post = True
-		)
+	params = {
+			"id" : str(id),
+			"status" : str(status),
+			"judgeMessage" : base64.b64encode(str(message)),
+			"verdict" : str(verdict)
+			}
+	import urllib2, urllib
+	f = urllib2.urlopen(url = web_prefix, data = urllib.urlencode(params))
 	pass
 
 def fetch(result):
@@ -94,7 +92,10 @@ def fetch(result):
 	return "%s (Time: %dms, Memory: %dkb)" % (Verdict[result["verdict"]], result["time"], result["memory"])
 	pass
 
-def judge(id, problem_id, language_name, code, caseScore, caseCount, timelimit, memorylimit, timestamp):
+def judge(id, problem_id, language_name, code, casescore, casecount, timelimit, memorylimit, timestamp):
+
+	log.write(str(id) + ": problem " + str(problem_id) + " lang: " + str(language_name), 3);
+
 	lang = load_language_lib(language_name)
 	if (lang == None):
 		log.write("Invalid language name \"" + language_name + "\" got.", 4)
@@ -108,16 +109,17 @@ def judge(id, problem_id, language_name, code, caseScore, caseCount, timelimit, 
 	send(id, "RUNNNING", "", 0)
 	
 	verdict = 1
-	judgeMessage = "Judging... PROB=" + str(id) + " LANG=" + language_name
+	judgeMessage = "Judging... PROB=" + str(problem_id) + " LANG=" + language_name
 	dataset = cache.getdata(problem_id, timestamp, casecount)
 	for data in dataset:
 		global working_dir
+		os.system("rm *.out -rf")
 		outfile = working_dir + "/" + name + ".out"
 		result = lang.execute(
 					name,
 					timelimit,
 					memorylimit,
-					outputlimit,
+					50 * 1024 * 1024,
 					data["infile"],
 					outfile
 				)
@@ -129,12 +131,26 @@ def judge(id, problem_id, language_name, code, caseScore, caseCount, timelimit, 
 		pass
 
 	send(id, "DONE", judgeMessage, verdict)
-
+	log.write(str(id) + ": Result : " + Verdict[verdict], 3)
 	os.system("rm * -rf")
-
 	pass
 
 if __name__ == "__main__":
 	load_config()
-	pass
+	while True:
+		record = network.Download(web_prefix + "?opcode=fetchRecord").get_json()
+		if (type(record) != dict):
+			continue
+		judge(
+				record["id"],
+				record["problem_id"],
+				record["code_language"],
+				record["code"],
+				record["caseScore"],
+				record["caseCount"],
+				record["timeLimit"],
+				record["memoryLimit"] * 1024,
+				record["Timestamp"]
+			)
+		time.sleep(2)
 
