@@ -41,7 +41,7 @@ def compile(name, code):
 	
 	com_msg_file = "%s_com_msg" % name
 	com_err_file = "%s_com_err" % name
-	process = __run(args = compile_pattern, trust = True, timelimit = 30 * 1000, outfile = com_msg_file, errfile = com_err_file)
+	process = __run(args = compile_pattern, trust = True, timelimit = 30 * 1000, outfile = com_msg_file, errfile = com_err_file, fsize = 50 * 1024 * 1024, memorylimit = 1 * 1024 * 1024 * 1024)
 	(result, stderr) = process.communicate()
 
 	try:
