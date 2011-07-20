@@ -1,0 +1,140 @@
+#!/usr/bin/env python2
+#coding=utf-8
+
+#Verdict:
+#	Unknown					0
+#	Accepted				1
+#	PresentationError		2
+#	Time Limit Exceeded		3
+#	Memory Limit Exceeded	4
+#	Wrong Answer			5
+#	Runtime Error			6
+#	Output Limit Exceeded	7
+#	Compile Error			8
+#	System Error			9
+#	Validator Error			10
+
+from util import log, network, cache
+import langlib
+import os, random, time
+
+working_dir = 1
+web_prefix = "http://localhost:8080/OnlineJudge/polling"
+Verdict = [
+		"UNKNOWN",
+		"Accepted",
+		"Presentation Error",
+		"Time Limit Exceeded",
+		"Memory Limit Exceeded",
+		"Wrong Answer",
+		"Runtime Error",
+		"Output Limit Exceeded",
+		"Compile Error",
+		"System Error",
+		"Validator Error"
+		]
+
+def generate_name():
+	'''Generate an random name for a record.'''
+	s = time.strftime("%s-")
+	for i in range(7):
+		s = s.join(['', chr(97 + random.randint(0, 25))])
+	return s
+
+def load_config():
+	log.logfile = "/var/log/rejudger.log"
+	cache.cachedir = "/var/cache/rejudger"
+	cache.prefix = "http://59.78.43.88:8080/Load/oj/problems"
+	global working_dir
+	working_dir = "/tmp/rejudger"
+	global web_prefix
+	web_prefix = "http://59.78.43.88:8080/OnlineJudge/polling"
+
+	if (os.path.exists(cache.cachedir) == False):
+		os.mkdir(cache.cachedir)
+
+	if (os.path.exists(working_dir) == False):
+		os.mkdir(working_dir)
+	os.chdir(working_dir)
+	pass
+
+def load_language_lib(language_name):
+	'''Return an object that refer to language_name'''
+	if (langlib.modules.has_key(language_name) == False):
+		return None
+	else:
+		return langlib.modules[language_name]
+	pass
+
+def validate(infile, outfile, ansfile):
+	import filecmp
+	if (filecmp.cmp(outfile, ansfile)):
+		return 1
+	else:
+		return 5
+	pass
+
+def send(id, status, message, verdict):
+	'''send message to webserver.'''
+	global web_prefix
+	network.Download(
+			web_prefix, 
+			params = {
+					"id" : str(id),
+					"status" : str(status),
+					"message" : str(message),
+					"verdict" : str(verdict)
+				},
+			post = True
+		)
+	pass
+
+def fetch(result):
+	'''Return the string according to the result'''
+	return "%s (Time: %dms, Memory: %dkb)" % (Verdict[result["verdict"]], result["time"], result["memory"])
+	pass
+
+def judge(id, problem_id, language_name, code, caseScore, caseCount, timelimit, memorylimit, timestamp):
+	lang = load_language_lib(language_name)
+	if (lang == None):
+		log.write("Invalid language name \"" + language_name + "\" got.", 4)
+		send(id, "DONE", "Invalid language name.", 8)
+		return
+
+	name = __generate_name()
+	if (lang.compile(name, base64.b64decode(code)) == False):
+		send(id, "DONE", "Compiling...\n" + lang.compile_message, 8)
+		return
+	send(id, "RUNNNING", "", 0)
+	
+	verdict = 1
+	judgeMessage = "Judging... PROB=" + str(id) + " LANG=" + language_name
+	dataset = cache.getdata(problem_id, timestamp, casecount)
+	for data in dataset:
+		global working_dir
+		outfile = working_dir + "/" + name + ".out"
+		result = lang.execute(
+					name,
+					timelimit,
+					memorylimit,
+					outputlimit,
+					data["infile"],
+					outfile
+				)
+		if (result["verdict"] == 1):
+			result["verdict"] = validate(data["infile"], outfile, data["outfile"])
+		judgeMessage += "\n" + fetch(result);
+		if (verdict == 1):
+			verdict = result["verdict"]
+		pass
+
+	send(id, "DONE", judgeMessage, verdict)
+
+	os.system("rm * -rf")
+
+	pass
+
+if __name__ == "__main__":
+	load_config()
+	pass
+
