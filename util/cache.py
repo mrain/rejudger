@@ -27,7 +27,6 @@ def __update(problem_id, timestamp, casecount):
 	for index in range(1, casecount + 1):
 		filename = "/".join((cachedir, str(problem_id), str(index) + ".in"))
 		url = "/".join((prefix, str(problem_id), "data", str(index) + ".in"))
-		print url
 		urllib.urlretrieve(url, filename)
 		filename = "/".join((cachedir, str(problem_id), str(index) + ".out"))
 		url = "/".join((prefix, str(problem_id), "data", str(index) + ".out"))
