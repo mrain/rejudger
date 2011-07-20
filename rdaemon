@@ -67,6 +67,8 @@ def load_language_lib(language_name):
 	pass
 
 def validate(infile, outfile, ansfile):
+	if (os.path.exists(outfile) == False):
+		return 5
 	import filecmp
 	if (filecmp.cmp(outfile, ansfile)):
 		return 1
