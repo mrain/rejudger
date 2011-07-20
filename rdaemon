@@ -106,7 +106,7 @@ def judge(id, problem_id, language_name, code, casescore, casecount, timelimit, 
 	if (lang.compile(name, base64.b64decode(code)) == False):
 		send(id, "DONE", "Compiling...\n" + lang.compile_message, 8)
 		return
-	send(id, "RUNNNING", "", 0)
+	send(id, "RUNNING", "", 0)
 	
 	verdict = 1
 	judgeMessage = "Judging... PROB=" + str(problem_id) + " LANG=" + language_name
