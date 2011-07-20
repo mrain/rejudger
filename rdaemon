@@ -111,7 +111,6 @@ def judge(id, problem_id, language_name, code, casescore, casecount, timelimit, 
 	send(id, "RUNNING", "", 0)
 	
 	verdict = 1
-	judgeMessage = "Judging... PROB=" + str(problem_id) + " LANG=" + language_name
 	dataset = cache.getdata(problem_id, timestamp, casecount)
 	for data in dataset:
 		global working_dir
@@ -127,12 +126,12 @@ def judge(id, problem_id, language_name, code, casescore, casecount, timelimit, 
 				)
 		if (result["verdict"] == 1):
 			result["verdict"] = validate(data["infile"], outfile, data["outfile"])
-		judgeMessage += "\n" + fetch(result);
 		if (verdict == 1):
 			verdict = result["verdict"]
+		send(id, "RUNNING", fetch(result), verdict)
 		pass
 
-	send(id, "DONE", judgeMessage, verdict)
+	send(id, "DONE", "", verdict)
 	log.write(str(id) + ": Result : " + Verdict[verdict], 3)
 	os.system("rm * -rf")
 	pass
